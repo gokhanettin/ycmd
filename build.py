@@ -93,6 +93,10 @@ def OnWindows():
   return platform.system() == 'Windows'
 
 
+def OnWindowsWithMSVC():
+  return OnWindows() and 'MSC' in platform.python_compiler()
+
+
 def OnCiService():
   return 'CI' in os.environ
 
@@ -183,7 +187,7 @@ def GetGlobalPythonPrefix():
 def GetPossiblePythonLibraryDirectories():
   prefix = GetGlobalPythonPrefix()
 
-  if OnWindows():
+  if OnWindowsWithMSVC():
     return [ p.join( prefix, 'libs' ) ]
   # On pyenv and some distributions, there is no Python dynamic library in the
   # directory returned by the LIBPL variable. Such library can be found in the
@@ -238,7 +242,7 @@ def FindPythonLibraries():
       if static_name.match( filename ):
         static_libraries.append( p.join( library_dir, filename ) )
 
-  if static_libraries and not OnWindows():
+  if static_libraries and not OnWindowsMSC():
     dynamic_flag = ( '--enable-framework' if OnMac() else
                      '--enable-shared' )
     sys.exit( NO_DYNAMIC_PYTHON_ERROR.format( library = static_libraries[ 0 ],
@@ -265,7 +269,7 @@ def CustomPythonCmakeArgs():
 
 
 def GetGenerator( args ):
-  if OnWindows():
+  if OnWindowsWithMSVC():
     return 'Visual Studio {version}{arch}'.format(
         version = args.msvc,
         arch = ' Win64' if platform.architecture()[ 0 ] == '64bit' else '' )
@@ -355,7 +359,7 @@ def GetCmakeArgs( parsed_args ):
     cmake_args.append( '-DUSE_DEV_FLAGS=ON' )
 
   # coverage is not supported for c++ on MSVC
-  if not OnWindows() and parsed_args.enable_coverage:
+  if not OnWindowsWithMSVC() and parsed_args.enable_coverage:
     cmake_args.append( '-DCMAKE_CXX_FLAGS=-coverage' )
 
   use_python2 = 'ON' if PY_MAJOR == 2 else 'OFF'
@@ -454,7 +458,7 @@ def BuildYcmdLib( args ):
     if 'YCM_BENCHMARK' in os.environ:
       build_targets.append( 'ycm_core_benchmarks' )
 
-    if OnWindows():
+    if OnWindowsWithMSVC():
       config = 'Debug' if args.enable_debug else 'Release'
       build_config = [ '--config', config ]
     else:
